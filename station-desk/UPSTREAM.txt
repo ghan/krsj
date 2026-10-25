@@ -1,0 +1,4 @@
+SonoBus upstream: https://github.com/sonosaurus/sonobus
+Starting commit: 35f1062dab196b9838a4bb529c4bf6592b7f5987
+Station Desk behavior is documented in SPEC.md; build instructions are in BUILD.md.
+Original README, licenses and dependency notices are retained.

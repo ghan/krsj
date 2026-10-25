@@ -1,0 +1,9 @@
+name = "krsj-playback-feed"
+main = "worker.mjs"
+compatibility_date = "2026-10-24"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "krsj-playback"
+database_id = "REPLACE_WITH_DATABASE_ID"
+migrations_dir = "migrations"

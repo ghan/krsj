@@ -1,0 +1,76 @@
+name: Station Desk milestone
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'station-desk/**'
+      - 'feed/**'
+      - '.github/workflows/station-desk.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: station-desk-milestone
+  cancel-in-progress: false
+
+jobs:
+  mac-app:
+    runs-on: macos-15-intel
+    timeout-minutes: 45
+    env:
+      STATION_UNIVERSAL: 'ON'
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+      - name: Build tools
+        shell: bash
+        run: |
+          python3 -m venv "$RUNNER_TEMP/station-tools"
+          "$RUNNER_TEMP/station-tools/bin/pip" install 'cmake==3.31.6'
+          echo "STATION_CMAKE=$RUNNER_TEMP/station-tools/bin/cmake" >> "$GITHUB_ENV"
+          if ! command -v ffmpeg >/dev/null; then brew install ffmpeg; fi
+      - name: Hosted feed checks
+        run: node --test feed/worker.test.mjs
+      - name: Build isolated app tests for both architectures
+        env:
+          STATION_DESK_TESTS: 'ON'
+        run: bash station-desk/scripts/build.sh
+      - name: Audio, queue, persistence, and native window checks
+        run: |
+          python3 .build/source/tests/run_tests.py --no-build \
+            --build-dir .build/native --ffmpeg "$(command -v ffmpeg)" \
+            --results .build/test-results
+          python3 station-desk/tests/evaluate_playlist_tests.py > .build/playlist-evaluation.log
+      - name: Build release without test entry points
+        env:
+          STATION_DESK_TESTS: 'OFF'
+        run: |
+          bash station-desk/scripts/build.sh
+          lipo -verify_arch arm64 x86_64 '.build/native/SonoBus_artefacts/Release/Standalone/Station Desk.app/Contents/MacOS/Station Desk'
+      - name: Package and verify DMG
+        run: |
+          bash station-desk/scripts/package-dmg.sh \
+            '.build/native/SonoBus_artefacts/Release/Standalone/Station Desk.app' .build/releases
+      - name: Publish milestone installer
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "station-desk-0.2.0-${GITHUB_RUN_NUMBER}" \
+            .build/releases/Station-Desk-0.2.0-universal.dmg \
+            .build/releases/Station-Desk-0.2.0-universal.dmg.sha256 \
+            --target "$GITHUB_SHA" --latest \
+            --title "Station Desk 0.2.0 (build ${GITHUB_RUN_NUMBER})" \
+            --notes-file station-desk/RELEASE-NOTES.md
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: station-desk-validation
+          path: |
+            .build/test-results/
+            .build/playlist-evaluation.log
+          retention-days: 14

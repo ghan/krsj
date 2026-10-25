@@ -1,0 +1,221 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index a8e35c0..a459361 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -19,7 +19,7 @@ endif()
+ option(UniversalBinary "Build universal binary for mac" ON)
+ 
+ if (APPLE)
+-    set (CMAKE_OSX_DEPLOYMENT_TARGET "10.10" CACHE INTERNAL "")
++    set (CMAKE_OSX_DEPLOYMENT_TARGET "11.0" CACHE INTERNAL "")
+     if (UniversalBinary)
+         set(CMAKE_OSX_ARCHITECTURES "x86_64;arm64" CACHE INTERNAL "")
+         #set(CMAKE_OSX_ARCHITECTURES arm64 x86_64)        
+@@ -82,15 +82,15 @@ juce_add_modules(deps/ff_meters)
+ 
+ 
+ 
+-set (FormatsToBuild VST3 Standalone)
++set (FormatsToBuild Standalone)
+ 
+ # On Mac, a AU version will be built too
+-if (APPLE)
++if (FALSE)
+     list (APPEND FormatsToBuild AU)
+ endif()
+ 
+ # On Linux, LV2 will be built too
+-if (UNIX)
++if (FALSE)
+     list (APPEND FormatsToBuild LV2)
+ endif()
+ 
+@@ -126,7 +126,7 @@ set (MacPList "<plist version=\"1.0\">
+          <string>net.sonobus</string>
+          <key>CFBundleURLSchemes</key>
+          <array>
+-              <string>sonobus</string>
++              <string>stationdesk</string>
+          </array>
+       </dict>
+    </array>
+@@ -151,12 +151,13 @@ function(sono_add_custom_plugin_target target_name product_name formats is_instr
+    endif()
+ 
+     juce_add_plugin("${target_name}"
++        VERSION "0.2.0"
+         IS_SYNTH "${is_instrument}"
+         NEEDS_MIDI_INPUT TRUE
+         NEEDS_MIDI_OUTPUT TRUE
+         EDITOR_WANTS_KEYBOARD_FOCUS TRUE
+-        COMPANY_NAME "Sonosaurus"
+-        BUNDLE_ID "com.Sonosaurus.SonoBus"
++        COMPANY_NAME "Radio Saint Johns"
++        BUNDLE_ID "org.communityradio.StationDesk"
+         MICROPHONE_PERMISSION_ENABLED TRUE
+         
+         ICON_BIG "images/sonobus_icon_mac_1024.png"
+@@ -179,7 +180,7 @@ function(sono_add_custom_plugin_target target_name product_name formats is_instr
+         PLUGIN_MANUFACTURER_CODE Sono
+         PLUGIN_CODE ${plugincode}
+         FORMATS ${formats}
+-        DESCRIPTION "SonoBus - Network Audio"
++        DESCRIPTION "Station Desk community radio console"
+         PRODUCT_NAME "${product_name}")
+ 
+     juce_generate_juce_header("${target_name}")
+@@ -438,6 +439,7 @@ function(sono_add_custom_plugin_target target_name product_name formats is_instr
+     
+     target_compile_definitions("${target_name}"
+         PUBLIC
++        STATION_DESK=1
+         JUCE_WEB_BROWSER=0
+         JUCE_USE_CURL=0
+         JUCE_VST3_CAN_REPLACE_VST2=0
+@@ -621,11 +623,17 @@ function(sono_add_custom_plugin_target target_name product_name formats is_instr
+ endfunction()
+ 
+ # most of the targets
+-sono_add_custom_plugin_target(SonoBus SonoBus "${FormatsToBuild}" FALSE  "NBus")
++sono_add_custom_plugin_target(SonoBus "Station Desk" "${FormatsToBuild}" FALSE  "NBus")
+ 
+ # Mobile targets
+ #sono_add_custom_plugin_target(SonoBusMobile "AUv3 Standalone" FALSE "NBus")
+ 
+ # add VSTi target
+-sono_add_custom_plugin_target(SonoBusInst "SonoBusInstrument" "VST3" TRUE  "IBus")
++# Instrument target omitted for Station Desk.
++
+ 
++# Test helpers are compiled only into an explicitly requested test build.
++option(STATION_DESK_TESTS "Build isolated Station Desk feature test entry point" OFF)
++if(STATION_DESK_TESTS)
++    set_property(SOURCE Source/SonoStandaloneFilterApp.cpp APPEND PROPERTY COMPILE_DEFINITIONS STATION_DESK_TESTS=1)
++endif()
+diff --git a/Source/SonoStandaloneFilterApp.cpp b/Source/SonoStandaloneFilterApp.cpp
+index 96d1610..65e98b4 100644
+--- a/Source/SonoStandaloneFilterApp.cpp
++++ b/Source/SonoStandaloneFilterApp.cpp
+@@ -1,3 +1,6 @@
++#if STATION_DESK
++#include "StationApplication.h"
++#else
+ // SPDX-License-Identifier: GPLv3-or-later WITH Appstore-exception
+ // Copyright (C) 2020 Jesse Chappell
+ 
+@@ -918,3 +921,5 @@ Image JUCE_CALLTYPE juce_getIAAHostIcon (int size)
+ START_JUCE_APPLICATION (SonobusStandaloneFilterApp);
+ 
+ //#endif
++
++#endif
+diff --git a/Source/SonobusPluginProcessor.cpp b/Source/SonobusPluginProcessor.cpp
+index f67bcfd..5d9cb45 100644
+--- a/Source/SonobusPluginProcessor.cpp
++++ b/Source/SonobusPluginProcessor.cpp
+@@ -739,9 +739,9 @@ mState (*this, &mUndoManager, "SonoBusAoO",
+     
+     // use this to match our main app support dir
+     PropertiesFile::Options options;
+-    options.applicationName     = "SonoBus";
++    options.applicationName     = "StationDesk";
+     options.filenameSuffix      = ".xml";
+-    options.osxLibrarySubFolder = "Application Support/SonoBus";
++    options.osxLibrarySubFolder = "Application Support/StationDesk";
+    #if JUCE_LINUX
+     options.folderName          = "~/.config/sonobus";
+    #else
+@@ -749,6 +749,10 @@ mState (*this, &mUndoManager, "SonoBusAoO",
+    #endif
+ 
+     mSupportDir = options.getDefaultFile().getParentDirectory();
++#if STATION_DESK
++    auto stationData = SystemStats::getEnvironmentVariable("STATION_DESK_DATA_DIR", "");
++    if (stationData.isNotEmpty()) mSupportDir = File(stationData);
++#endif
+ 
+    
+     
+@@ -865,7 +869,7 @@ void SonobusAudioProcessor::moveOldMisplacedFiles()
+     PropertiesFile::Options dummyoptions;
+     dummyoptions.applicationName     = "dummy";
+     dummyoptions.filenameSuffix      = ".xml";
+-    dummyoptions.osxLibrarySubFolder = "Application Support/SonoBus";
++    dummyoptions.osxLibrarySubFolder = "Application Support/StationDesk";
+    #if JUCE_LINUX
+     dummyoptions.folderName          = "~/.config/sonobus";
+    #else
+@@ -6011,6 +6015,10 @@ SonobusAudioProcessor::RemotePeer * SonobusAudioProcessor::doAddRemotePeerIfNece
+         retpeer->gain = mDefUserLevel.get();
+ 
+         findAndLoadCacheForPeer(retpeer);
++#if STATION_DESK
++        // Receiving a new connection never implicitly makes it an on-air source.
++        retpeer->gain = 0.0f;
++#endif
+ 
+         if (retpeer->autosizeBufferMode == AutoNetBufferModeInitAuto) {
+             retpeer->buffertimeMs = 0;
+diff --git a/deps/juce/modules/juce_audio_devices/sources/juce_AudioTransportSource.cpp b/deps/juce/modules/juce_audio_devices/sources/juce_AudioTransportSource.cpp
+index 3614c9c..ae053c3 100644
+--- a/deps/juce/modules/juce_audio_devices/sources/juce_AudioTransportSource.cpp
++++ b/deps/juce/modules/juce_audio_devices/sources/juce_AudioTransportSource.cpp
+@@ -156,7 +156,10 @@ double AudioTransportSource::getLengthInSeconds() const
+ 
+ bool AudioTransportSource::hasStreamFinished() const noexcept
+ {
+-    return positionableSource->getNextReadPosition() > positionableSource->getTotalLength() + 1
++    // Station Desk queries this from its audio callback while the UI replaces tracks.
++    const ScopedLock sl (callbackLock);
++    return positionableSource != nullptr
++              && positionableSource->getNextReadPosition() > positionableSource->getTotalLength() + 1
+               && ! positionableSource->isLooping();
+ }
+ 
+diff --git a/deps/juce/modules/juce_gui_basics/native/juce_Windowing_mac.mm b/deps/juce/modules/juce_gui_basics/native/juce_Windowing_mac.mm
+index ad459d4..5cee4d0 100644
+--- a/deps/juce/modules/juce_gui_basics/native/juce_Windowing_mac.mm
++++ b/deps/juce/modules/juce_gui_basics/native/juce_Windowing_mac.mm
+@@ -520,36 +520,15 @@ static Image createNSWindowSnapshot (NSWindow* nsWindow)
+ {
+     JUCE_AUTORELEASEPOOL
+     {
+-        // CGWindowListCreateImage is replaced by functions in the ScreenCaptureKit framework, but
+-        // that framework is only available from macOS 12.3 onwards.
+-        // A suitable @available check should be added once the minimum build OS is 12.3 or greater,
+-        // so that ScreenCaptureKit can be weak-linked.
+-       #if defined (MAC_OS_VERSION_14_0) && MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_VERSION_14_0
+-        JUCE_BEGIN_IGNORE_WARNINGS_GCC_LIKE ("-Wdeprecated-declarations")
+-        #define JUCE_DEPRECATION_IGNORED 1
+-       #endif
+-
+-        CGImageRef screenShot = CGWindowListCreateImage (CGRectNull,
+-                                                         kCGWindowListOptionIncludingWindow,
+-                                                         (CGWindowID) [nsWindow windowNumber],
+-                                                         kCGWindowImageBoundsIgnoreFraming);
+-
+-       #if JUCE_DEPRECATION_IGNORED
+-        JUCE_END_IGNORE_WARNINGS_GCC_LIKE
+-        #undef JUCE_DEPRECATION_IGNORED
+-       #endif
+-
+-        NSBitmapImageRep* bitmapRep = [[NSBitmapImageRep alloc] initWithCGImage: screenShot];
+-
+-        Image result (Image::ARGB, (int) [bitmapRep size].width, (int) [bitmapRep size].height, true);
+-
++        NSView* view = [nsWindow contentView];
++        NSBitmapImageRep* bitmapRep = [view bitmapImageRepForCachingDisplayInRect: [view bounds]];
++        if (bitmapRep == nil) return {};
++        [view cacheDisplayInRect: [view bounds] toBitmapImageRep: bitmapRep];
++        Image result (Image::ARGB, (int) [bitmapRep pixelsWide], (int) [bitmapRep pixelsHigh], true);
+         selectImageForDrawing (result);
+-        [bitmapRep drawAtPoint: NSMakePoint (0, 0)];
++        [bitmapRep drawInRect: NSMakeRect (0, 0, result.getWidth(), result.getHeight())];
+         releaseImageAfterDrawing();
+ 
+-        [bitmapRep release];
+-        CGImageRelease (screenShot);
+-
+         return result;
+     }
+ }
