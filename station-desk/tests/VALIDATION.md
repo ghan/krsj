@@ -19,7 +19,7 @@ Fault injection exposed a weak order test: repeated shuffle cycles could place t
 
 The universal binary contains x86_64 and arm64 slices. Local execution used the Apple silicon slice. The native UI was rendered and inspected; special-character labels, readiness text, markers, and row layout were checked. Release builds disable test-only entry points. The DMG was mounted read-only; its signature, version, both architectures, Applications shortcut, and image checksum passed verification. It is ad hoc signed and is not Apple notarized.
 
-The GitHub milestone workflow runs on macos-15-intel and rebuilds/tests the same source before publishing a universal DMG. A completed local run does not imply that the hosted workflow has completed.
+The GitHub milestone workflow ran successfully on macos-15-intel: [run 40160400841](https://github.com/ghan/krsj/actions/runs/40160400841). It passed the same 170 native checks, the 8 feed checks, and the five scheduler fault-injection checks, then rebuilt with test helpers disabled and verified/published the universal DMG.
 
 Cloudflare account provisioning, D1 migration, endpoint credentials, and live app-to-website delivery are not activated by these tests. Real broadcast hardware and an internet DJ session still need station-side checks.
 
@@ -38,4 +38,10 @@ A fresh pinned upstream archive plus the checked-in patch and overlay reproduced
 
 - `tests/run_tests.py`: `b1b6c9fed67def335070742d7e75d539c9a964ad116c4345dc1dcab277f1baa4`
 
-The first hosted Intel run passed the queue checks but failed the Ogg decoder check. The fixture had relied on FFmpeg's build-dependent default codec for the Ogg container. Fixtures now explicitly encode native Vorbis and independently verify its identification header before decoder checks. The fresh local run passed all 170 checks with that fixture. The hosted rerun is a separate gate before publishing.
+The first hosted Intel run passed the queue checks but failed the Ogg decoder check. The fixture had relied on FFmpeg's build-dependent default codec for the Ogg container. Fixtures now explicitly encode native Vorbis and independently verify its identification header before decoder checks. The fresh local run passed all 170 checks with that fixture. The corrected hosted rerun passed and the installer was published after all gates completed.
+
+## Published installer
+
+[Station Desk 0.2.0 universal DMG](https://github.com/ghan/krsj/releases/download/station-desk-0.2.0-4/Station-Desk-0.2.0-universal.dmg)
+
+Release: `station-desk-0.2.0-4`; evaluated app source commit: `c857b567ebe033144a70d48fddc5b64274a3a23a`. Both installer and checksum assets are uploaded. SHA-256 of the hosted DMG: `e945ec53e21ad450282fa669fa351c171986858582ad4085687b5ca934a0eb1b`.
