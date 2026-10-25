@@ -27,11 +27,15 @@ Behavioral authority and remaining assumptions: [SPEC.md](../SPEC.md). Full loca
 
 ## Evaluated source hashes
 
-- `Source/StationApplication.h`: `f3423613ec68d85df9b15cc6fde824475d41ebb4b3ce838ae9633086e6e897ed`
+- `Source/StationApplication.h`: `af751519a8f91ba0bc5bd10677905ff4647c1914af23db2b4a8874cfcb19d144`
 - `Source/StationPlaylist.h`: `6900612ceba7c699fd6fa1788a7a0e3365c04f90b4457bf9c1ce3f72208e0029`
 - `Source/StationFeed.h`: `e05d2eed365de587530d2b15345f62e0b6f3edf7dca9edfa0da1623bbdc28495`
 - `Source/StationMix.h`: `977af70d47977464338ddff227ab7acf1cf11faf8b5ac9929f936b0c93748e0f`
-- `tests/StationFeatureTests.h`: `8671dbbfd8b83d2972c5ee134a56a2dfa7d464d7fefda74aa3b56ad41c1f3451`
+- `tests/StationFeatureTests.h`: `61362c2f30f17430e178d710c0000a1ca4889a93eecef337b77215addf3a6ddc`
 - `tests/StationPlaylistTests.cpp`: `9053766bb44875bbc7f2d13e7c5e6d1741d9b89188f9c0003ac7428b6b49626d`
 
 A fresh pinned upstream archive plus the checked-in patch and overlay reproduced all evaluated native build inputs byte-for-byte. The preparation script explicitly prevents Git from finding the parent website repository and silently skipping the native-source patch.
+
+- `tests/run_tests.py`: `b1b6c9fed67def335070742d7e75d539c9a964ad116c4345dc1dcab277f1baa4`
+
+The first hosted Intel run passed the queue checks but failed the Ogg decoder check. The fixture had relied on FFmpeg's build-dependent default codec for the Ogg container. Fixtures now explicitly encode native Vorbis and independently verify its identification header before decoder checks. The fresh local run passed all 170 checks with that fixture. The hosted rerun is a separate gate before publishing.

@@ -45,6 +45,7 @@ def main():
               'failed':[line[5:] for line in output.splitlines() if line.startswith('FAIL ')]}
         report['commands'].append(item)
         print(f'{name}: exit={code}, {len(item["passed"])} pass, {len(item["failed"])} fail',flush=True)
+        if item['failed']:print('Failed checks: '+', '.join(item['failed']),flush=True)
         return item
 
     def require(item, checks=0):
@@ -75,7 +76,12 @@ def main():
             shutil.copyfile(fixtures/'other.wav',fixtures/'library/nested/submusic.wav')
             (fixtures/'library/ignore.txt').write_text('not an audio file')
             for ext in ['aiff','flac','ogg','mp3','m4a']:
-                require(command('fixture-'+ext,[args.ffmpeg,'-nostdin','-y','-loglevel','error','-i',fixtures/'tone.wav',fixtures/('tone.'+ext)]))
+                # Ogg is a container. FFmpeg's default is FLAC when libvorbis is
+                # absent; the app's advertised Ogg decoder is specifically Vorbis.
+                codec=['-c:a','vorbis','-strict','experimental'] if ext=='ogg' else []
+                require(command('fixture-'+ext,[args.ffmpeg,'-nostdin','-y','-loglevel','error','-i',fixtures/'tone.wav',*codec,fixtures/('tone.'+ext)]))
+                if ext=='ogg' and b'\x01vorbis' not in (fixtures/'tone.ogg').read_bytes()[:4096]:
+                    raise RuntimeError('Ogg fixture is not Vorbis; refusing a misleading decoder test')
             env=os.environ.copy()
             def isolated():
                 folder=Path(tempfile.mkdtemp(prefix='settings-',dir=temp));(folder/'test-only.marker').touch()

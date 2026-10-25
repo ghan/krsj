@@ -215,7 +215,7 @@ public:
             if(group.getText().trim().isEmpty()) {status.setText("Enter a SonoBus group name first.",dontSendNotification);return;}
             if(engine.receiver.isConnectedToServer())engine.receiver.disconnectFromServer();
             pendingJoin=true;connectionStart=Time::getMillisecondCounterHiRes();
-            engine.receiver.connectToServer("aoo.sonobus.net",10998,"StationDesk","");status.setText("Connecting to SonoBus…",dontSendNotification);
+            engine.receiver.connectToServer("aoo.sonobus.net",10998,"StationDesk","");status.setText("Connecting to SonoBus...",dontSendNotification);
         });
         button(disconnect,"Leave",[this] {pendingJoin=false;engine.receiver.disconnectFromServer();});
         label(connection,"Not connected",14);addAndMakeVisible(peers);peers.setTextWhenNothingSelected("Select the DJ to receive");
@@ -353,7 +353,7 @@ private:
         g.setFont(13.f);g.setColour(Colour(0xff5ad5bb));
         if(marker)g.drawText(clockText(*marker),6,0,78,height,Justification::centredLeft);
         g.setColour(Colours::white);g.setFont(14.f);g.drawText(String(track->title),88,2,width-94,18,Justification::centredLeft);
-        String detail=(current?(engine.remoteOn?"HELD · ":engine.playing?"NOW · ":"PAUSED · "):"")+categoryNames[size_t(track->category)]+" · "+timeText(track->seconds);
+        String detail=String::fromUTF8(current?(engine.remoteOn?"HELD · ":engine.playing?"NOW · ":"PAUSED · "):"")+categoryNames[size_t(track->category)]+" · "+timeText(track->seconds);
         if(!track->artist.empty())detail+=" · "+String(track->artist);
         g.setColour(Colour(0xffa7bbc6));g.setFont(11.f);g.drawText(detail,88,20,width-94,15,Justification::centredLeft);
     }
@@ -400,7 +400,7 @@ private:
         std::vector<station::Track> tracks;
         for(const auto& f:files)if(auto t=readTrack(f,i))tracks.push_back(*t);
         int unreadable=files.size()-int(tracks.size());playlist.setLibrary(i,std::move(tracks));
-        folderLabels[i].setText(String(playlist.libraries[i].size())+" files · "+folders[i].getFileName()+(unreadable?" · "+String(unreadable)+" unreadable":""),dontSendNotification);
+        folderLabels[i].setText(String(playlist.libraries[i].size())+" files · "+folders[i].getFileName()+(unreadable?String::fromUTF8(" · ")+String(unreadable)+" unreadable":""),dontSendNotification);
         folderLabels[i].setTooltip(folders[i].getFullPathName());
     }
     void syncRules() {for(int i=0;i<3;++i)playlist.rules[i]={rules[i].mode.getSelectedId(),jmax(1,int(rules[i].amount.getValue()))};}
@@ -446,7 +446,7 @@ private:
         broadcastKey=key;history.stop(now);
         if(key.isEmpty())return;
         station::PlayEvent event;event.id=Uuid().toString().toStdString();
-        if(engine.remoteOn) {event.title=("Remote DJ"+(selectedPeer.isNotEmpty()?" — "+selectedPeer:String())).toStdString();event.kind="remote";}
+        if(engine.remoteOn) {event.title=("Remote DJ"+(selectedPeer.isNotEmpty()?String::fromUTF8(" — ")+selectedPeer:String())).toStdString();event.kind="remote";}
         else {event.title=playlist.current->title;event.artist=playlist.current->artist;event.kind=categoryNames[size_t(playlist.current->category)].toLowerCase().toStdString();}
         history.start(event,now);
     }
@@ -498,7 +498,7 @@ private:
     void timerCallback() override {
         if(pendingJoin&&engine.receiver.isConnectedToServer()) {engine.receiver.joinServerGroup(group.getText().trim(),password.getText(),false);pendingJoin=false;}
         else if(pendingJoin&&Time::getMillisecondCounterHiRes()-connectionStart>15000) {pendingJoin=false;status.setText("Connection timed out. Check internet access and try again.",dontSendNotification);}
-        connection.setText(engine.receiver.getCurrentJoinedGroup().isNotEmpty()?"In group: "+engine.receiver.getCurrentJoinedGroup():pendingJoin?"Connecting…":"Not in a group",dontSendNotification);
+        connection.setText(engine.receiver.getCurrentJoinedGroup().isNotEmpty()?"In group: "+engine.receiver.getCurrentJoinedGroup():pendingJoin?"Connecting...":"Not in a group",dontSendNotification);
         String signature;int count=engine.receiver.getNumberRemotePeers();for(int i=0;i<count;++i)signature+=engine.receiver.getRemotePeerUserName(i)+"\n";
         if(signature!=peerSignature) {peerSignature=signature;peers.clear(dontSendNotification);for(int i=0;i<count;++i)peers.addItem(engine.receiver.getRemotePeerUserName(i),i+1);for(int i=0;i<count;++i)if(engine.receiver.getRemotePeerUserName(i)==selectedPeer)peers.setSelectedId(i+1,dontSendNotification);}
         for(int i=0;i<count;++i)engine.receiver.setRemotePeerLevelGain(i,engine.receiver.getRemotePeerUserName(i)==selectedPeer&&selectedPeer.isNotEmpty()?1.f:0.f);
@@ -513,7 +513,7 @@ private:
         if(auto* d=engine.devices.getCurrentAudioDevice()) {
             String sig=d->getName()+d->getActiveOutputChannels().toString(2)+d->getActiveInputChannels().toString(2);if(sig!=deviceSignature){deviceSignature=sig;updateRoutes();}
             bool overlap=std::abs(engine.programPair.load()-engine.cuePair.load())<2;auto active=d->getActiveOutputChannels();int c=engine.cuePair,p=engine.programPair;
-            routing.setText(!active[p]||!active[p+1]?"Broadcast pair unavailable — choose an active pair.":overlap?"Headphones disabled: choose a separate pair.":!active[c]||!active[c+1]?"Headphone pair unavailable on this device.":"Separate broadcast and headphone outputs ready.",dontSendNotification);
+            routing.setText(!active[p]||!active[p+1]?"Broadcast pair unavailable: choose an active pair.":overlap?"Headphones disabled: choose a separate pair.":!active[c]||!active[c+1]?"Headphone pair unavailable on this device.":"Separate broadcast and headphone outputs ready.",dontSendNotification);
         }
         repaint();
     }
@@ -672,7 +672,7 @@ public:
     void systemRequestedQuit() override {quit();}
     class Window : public DocumentWindow {
     public:
-        Window():DocumentWindow("Station Desk · development build",Colour(0xff101820),DocumentWindow::allButtons) {
+        Window():DocumentWindow("Station Desk 0.2.0",Colour(0xff101820),DocumentWindow::allButtons) {
             setUsingNativeTitleBar(true);setContentOwned(new StationPanel,true);setResizable(false,false);centreWithSize(getWidth(),getHeight());setVisible(true);
         }
         void closeButtonPressed() override {JUCEApplication::getInstance()->systemRequestedQuit();}

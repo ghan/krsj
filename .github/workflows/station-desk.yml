@@ -5,7 +5,9 @@ on:
     branches: [main]
     paths:
       - 'station-desk/**'
+      - '!station-desk/**/*.md'
       - 'feed/**'
+      - '!feed/**/*.md'
       - '.github/workflows/station-desk.yml'
   workflow_dispatch:
 
@@ -22,6 +24,7 @@ jobs:
     timeout-minutes: 45
     env:
       STATION_UNIVERSAL: 'ON'
+      STATION_JOBS: '3'
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v7

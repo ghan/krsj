@@ -199,9 +199,9 @@ public:
             p->playPause.onClick();t.check(!e.playing&&!p->history.live,"button.pause_updates_feed");
             p->playPause.onClick();t.check(e.playing&&p->history.live.has_value(),"button.resume_updates_feed");
             p->skip.onClick();t.check(e.loadedName=="other"&&p->playlist.upcoming.empty(),"button.next_follows_visible_queue");
-            add(tone);p->remote.onClick();p->skip.onClick();p->playPause.onClick();
+            add(tone);p->selectedPeer="Alice";p->remote.onClick();p->skip.onClick();p->playPause.onClick();
             t.check(e.remoteOn&&p->playlist.upcoming.size()==1&&e.loadedName=="other","source.remote_blocks_next_and_pause");
-            t.check(p->history.live&&p->history.live->kind=="remote","feed.remote_session_has_no_invented_track_titles");
+            t.check(p->history.live&&p->history.live->kind=="remote"&&p->history.live->title==String::fromUTF8("Remote DJ — Alice").toStdString(),"feed.remote_session_has_no_invented_track_titles");
             t.wait([&]{return e.fadePosition==1;});Thread::sleep(30);
             auto before=p->rowTimes(1,1000000);auto after=p->rowTimes(1,1060000);
             t.check(after.first-before.first==60000,"queue.remote_hold_shifts_estimates_without_consuming_items");

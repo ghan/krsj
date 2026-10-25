@@ -29,6 +29,7 @@ These are assumptions for review, not requirements established by the existence 
 - Prefer embedded title/artist metadata, falling back to the filename for title. History records actual playback segments, including skipped songs and separate local segments surrounding a remote session or pause.
 - Website updates use a 15-second heartbeat, retry off the audio thread, and expire now-playing information after 90 seconds without an update. Played history expires after two hours, including when broadcasting stops. Failed publishing does not interrupt audio.
 - Reopening restores operator order and remaining shuffle bags. Unreadable files are excluded or skipped; no playable library means a visible stopped status.
+- The inherited Ogg-format check means Vorbis audio in an Ogg container. Other codecs can also use the `.ogg` extension; the file extension alone does not establish decoder support. Test fixtures explicitly select and verify Vorbis.
 
 ## Test changes
 
