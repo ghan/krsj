@@ -28,4 +28,4 @@ The feature tests use isolated preferences and a simulated audio device. They ne
 
 The test build includes test-only command-line helpers; release builds disable them. The generated fixture tools need FFmpeg. The targeted playlist evaluation introduces five independent defects in temporary headers and requires the intended behavioral assertion to reject each one. It never edits production source.
 
-The older `tests/VALIDATION.md` in the downloaded upstream working material describes the previous prototype, not the current queue specification. Current validation belongs in this repository's `station-desk/tests/VALIDATION.md`.
+Current validation is recorded in `station-desk/tests/VALIDATION.md`. Earlier prototype reports describe the previous queue specification.

@@ -16,11 +16,18 @@ elif [ -e "$source_dir" ]; then
 else
   mkdir -p "$(dirname "$source_dir")"
   staging="$(mktemp -d "$(dirname "$source_dir")/source-stage.XXXXXX")"
+  staging="$(cd "$staging" && pwd -P)"
   trap 'rm -rf "$staging"' EXIT
   curl --fail --location --retry 3 "https://github.com/sonosaurus/sonobus/archive/$base.tar.gz" -o "$staging/source.tar.gz"
   mkdir "$staging/source"
   tar -xzf "$staging/source.tar.gz" --strip-components=1 -C "$staging/source"
-  (cd "$staging/source" && git apply --whitespace=nowarn "$overlay/upstream.patch")
+  # The extracted source sits inside the website checkout. Prevent git apply
+  # from finding that parent repo and silently skipping paths outside its prefix.
+  GIT_CEILING_DIRECTORIES="$staging" git -C "$staging/source" apply --whitespace=nowarn "$overlay/upstream.patch"
+  if ! grep -q 'STATION_DESK=1' "$staging/source/CMakeLists.txt"; then
+    echo 'Station Desk patch was not applied; refusing to build upstream SonoBus.' >&2
+    exit 1
+  fi
   printf '%s\n' "$expected" > "$staging/source/.station-desk-base"
   mv "$staging/source" "$source_dir"
 fi
