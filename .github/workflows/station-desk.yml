@@ -14,7 +14,7 @@ permissions:
 
 concurrency:
   group: station-desk-milestone
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   mac-app:
@@ -51,7 +51,7 @@ jobs:
           STATION_DESK_TESTS: 'OFF'
         run: |
           bash station-desk/scripts/build.sh
-          lipo -verify_arch arm64 x86_64 '.build/native/SonoBus_artefacts/Release/Standalone/Station Desk.app/Contents/MacOS/Station Desk'
+          lipo '.build/native/SonoBus_artefacts/Release/Standalone/Station Desk.app/Contents/MacOS/Station Desk' -verify_arch arm64 x86_64
       - name: Package and verify DMG
         run: |
           bash station-desk/scripts/package-dmg.sh \

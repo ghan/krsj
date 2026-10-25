@@ -8,7 +8,7 @@ output="$(cd "$output" && pwd)"
 stage="$(mktemp -d)"
 trap 'rm -rf "$stage"' EXIT
 codesign --verify --deep --strict "$app"
-lipo -verify_arch arm64 x86_64 "$app/Contents/MacOS/Station Desk"
+lipo "$app/Contents/MacOS/Station Desk" -verify_arch arm64 x86_64
 ditto "$app" "$stage/Station Desk.app"
 ln -s /Applications "$stage/Applications"
 cp "$overlay/LICENSE" "$stage/LICENSE.txt"
