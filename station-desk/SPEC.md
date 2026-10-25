@@ -33,6 +33,8 @@ These are assumptions for review, not requirements established by the existence 
 
 ## Test changes
 
+The broader inventory of inherited test assumptions is [tests/ASSUMPTIONS.md](tests/ASSUMPTIONS.md). Those defaults remain open to operator correction.
+
 Removed the assertion that manual skips must not count toward insertion cadence, plus tests that assumed choices were made only at EOF. Replaced them with a visible preselected sequence checked through skips and through real decoder EOF callbacks.
 
 The DSP, device routing, microphone, and remote isolation tests remain inherited behavior checks. They do not establish real Quantum hardware routing, internet SonoBus interoperability, or unattended broadcast reliability.
