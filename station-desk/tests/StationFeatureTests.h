@@ -104,6 +104,8 @@ public:
         reset();
         {
             auto e=std::make_unique<StationEngine>(); installDevice(*e);
+            // Keep these routing assertions linear so they isolate device and source routing behavior.
+            e->compressorEnabled=false;
             t.check(!e->playing&&!e->remoteOn&&!e->micOn&&!e->audioRunning,"startup.safe_defaults");
             t.check(near(e->receiver.getValueTreeState().getRawParameterValue(SonobusAudioProcessor::paramDefaultPeerLevel)->load(),0),"remote.new_peers_muted_by_default");
             t.check(near(e->receiver.getValueTreeState().getRawParameterValue(SonobusAudioProcessor::paramMainSendMute)->load(),1),"remote.local_send_muted");
