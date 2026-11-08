@@ -6,7 +6,7 @@ The outbound website publisher records now-playing and the last two hours actual
 
 When a track has no embedded artist metadata, Station Desk uses its containing folder name as the artist in the queue and website feed.
 
-The broadcast output now includes a stereo-linked soft-knee compressor after local, remote, ducking, and microphone mixing. Open **Compressor: ON** in the Microphone & Monitor section to adjust threshold, ratio, attack, release, and makeup gain. Defaults are −12 dBFS, 2:1, 10 ms, 100 ms, and 0 dB. Settings persist between launches; the final output clamp remains as a safety ceiling.
+The broadcast output now includes a stereo-linked soft-knee compressor after local, remote, ducking, and microphone mixing. Open **Compressor: ON** in the Microphone & Monitor section to adjust threshold, ratio, attack, release, and makeup gain, then click Apply. Defaults are −12 dBFS, 2:1, 10 ms, 100 ms, and 0 dB. Settings persist between launches; the final output clamp remains as a safety ceiling.
 
 Download the universal DMG, open it, and drag Station Desk into Applications. Supports Apple silicon and Intel Macs running macOS 11+. This development build is ad hoc signed and is not Apple notarized; first launch may require Privacy & Security → Open Anyway.
 

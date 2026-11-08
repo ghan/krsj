@@ -154,6 +154,82 @@ private:
     double sampleRate = 48000;
 };
 
+class StationCompressorControls final : public Component {
+public:
+    struct Values {
+        bool enabled;
+        float threshold, ratio, attack, release, makeup;
+    };
+
+    StationCompressorControls(Values initial, std::function<void(Values)> onApply)
+        : values(initial), apply(std::move(onApply)) {
+        setSize(680, 385);
+        addAndMakeVisible(enabled);
+        enabled.setButtonText("Enable compressor");
+        enabled.setColour(ToggleButton::textColourId, Colour(0xffe1ecef));
+        enabled.setToggleState(values.enabled, dontSendNotification);
+        enabled.onClick = [this] { values.enabled = enabled.getToggleState(); };
+
+        label(instructions, "Stereo-linked soft knee · changes take effect when you click Apply", 13);
+        addSlider(threshold, thresholdLabel, "Threshold (dBFS)", -30.0, 0.0, 0.5, values.threshold, " dB");
+        addSlider(ratio, ratioLabel, "Ratio", 1.0, 10.0, 0.1, values.ratio, ":1");
+        addSlider(attack, attackLabel, "Attack (ms)", 1.0, 100.0, 1.0, values.attack, " ms");
+        addSlider(release, releaseLabel, "Release (ms)", 20.0, 500.0, 5.0, values.release, " ms");
+        addSlider(makeup, makeupLabel, "Makeup gain (dB)", 0.0, 12.0, 0.5, values.makeup, " dB");
+        addAndMakeVisible(applyButton);
+        applyButton.setButtonText("Apply");
+        applyButton.onClick = [this] {
+            values = { enabled.getToggleState(), float(threshold.getValue()), float(ratio.getValue()),
+                       float(attack.getValue()), float(release.getValue()), float(makeup.getValue()) };
+            if (apply) apply(values);
+            result.setText("Applied and saved.", dontSendNotification);
+        };
+        label(result, "Changes are saved to this computer.", 12);
+    }
+
+    void paint(Graphics& g) override { g.fillAll(Colour(0xff192631)); }
+
+    void resized() override {
+        enabled.setBounds(24, 52, 210, 28);
+        instructions.setBounds(24, 20, getWidth() - 48, 24);
+        const int rowHeight = 48;
+        for (int i = 0; i < int(sliders.size()); ++i) {
+            captions[size_t(i)]->setBounds(24, 88 + i * rowHeight, 150, 28);
+            sliders[size_t(i)]->setBounds(180, 88 + i * rowHeight, getWidth() - 204, 28);
+        }
+        applyButton.setBounds(24, getHeight() - 48, 100, 30);
+        result.setBounds(140, getHeight() - 48, getWidth() - 164, 30);
+    }
+
+private:
+    Values values;
+    std::function<void(Values)> apply;
+    ToggleButton enabled;
+    Label instructions, result;
+    Slider threshold, ratio, attack, release, makeup;
+    Label thresholdLabel, ratioLabel, attackLabel, releaseLabel, makeupLabel;
+    std::array<Slider*, 5> sliders {{&threshold, &ratio, &attack, &release, &makeup}};
+    std::array<Label*, 5> captions {{&thresholdLabel, &ratioLabel, &attackLabel, &releaseLabel, &makeupLabel}};
+    TextButton applyButton;
+
+    void label(Label& l, const String& text, float size) {
+        addAndMakeVisible(l); l.setText(text, dontSendNotification); l.setFont(Font(size));
+        l.setColour(Label::textColourId, Colour(0xffe1ecef));
+    }
+
+    void addSlider(Slider& s, Label& caption, const String& name,
+                   double minimum, double maximum, double step, double value, const String& suffix) {
+        label(caption, name, 13);
+        addAndMakeVisible(s); s.setName(name); s.setTooltip(name); s.setRange(minimum, maximum, step);
+        s.setValue(value, dontSendNotification); s.setTextValueSuffix(suffix);
+        s.setSliderStyle(Slider::LinearHorizontal); s.setTextBoxStyle(Slider::TextBoxRight, false, 72, 24);
+        s.setColour(Slider::thumbColourId, Colour(0xff5ad5bb));
+        s.setColour(Slider::trackColourId, Colour(0xff338e80));
+        s.setColour(Slider::textBoxTextColourId, Colour(0xffe1ecef));
+        s.setColour(Slider::textBoxBackgroundColourId, Colour(0xff101820));
+    }
+};
+
 class StationPanel : public Component, public DragAndDropContainer, private Timer, private ListBoxModel {
     friend class StationFeatureTests;
     class QueueList final : public ListBox, public DragAndDropTarget {
@@ -505,34 +581,22 @@ private:
         }),false);
     }
     void showCompressorSettings() {
-        auto* dialog=new AlertWindow("Broadcast compressor",
-            "Processing is applied to the complete broadcast mix after source mixing, including the microphone. Headphone program monitoring follows the processed mix.",
-            AlertWindow::NoIcon);
-        dialog->addToggleButton("enabled","Enable compressor",engine.compressorEnabled.load());
-        dialog->addSlider("Threshold (dB)",engine.compressorThreshold.load(),-30.0,0.0,0.5);
-        dialog->addSlider("Ratio",engine.compressorRatio.load(),1.0,10.0,0.1);
-        dialog->addSlider("Attack (ms)",engine.compressorAttack.load(),1.0,100.0,1.0);
-        dialog->addSlider("Release (ms)",engine.compressorRelease.load(),20.0,500.0,5.0);
-        dialog->addSlider("Makeup gain (dB)",engine.compressorMakeup.load(),0.0,12.0,0.5);
-        if(auto* s=dialog->getSliderComponent("Threshold (dB)"))s->setTextValueSuffix(" dB");
-        if(auto* s=dialog->getSliderComponent("Attack (ms)"))s->setTextValueSuffix(" ms");
-        if(auto* s=dialog->getSliderComponent("Release (ms)"))s->setTextValueSuffix(" ms");
-        if(auto* s=dialog->getSliderComponent("Makeup gain (dB)"))s->setTextValueSuffix(" dB");
-        dialog->addButton("Apply",1,KeyPress(KeyPress::returnKey));
-        dialog->addButton("Cancel",0,KeyPress(KeyPress::escapeKey));
-        dialog->enterModalState(true,ModalCallbackFunction::create([safe=Component::SafePointer<StationPanel>(this),dialog](int result) {
-            if(safe&&result==1) {
-                auto& e=safe->engine;
-                e.compressorEnabled=dialog->getToggleButtonComponent("enabled")->getToggleState();
-                e.compressorThreshold=float(dialog->getSliderComponent("Threshold (dB)")->getValue());
-                e.compressorRatio=float(dialog->getSliderComponent("Ratio")->getValue());
-                e.compressorAttack=float(dialog->getSliderComponent("Attack (ms)")->getValue());
-                e.compressorRelease=float(dialog->getSliderComponent("Release (ms)")->getValue());
-                e.compressorMakeup=float(dialog->getSliderComponent("Makeup gain (dB)")->getValue());
-                safe->save();
-            }
-            delete dialog;
-        }),false);
+        using Values = StationCompressorControls::Values;
+        Values initial { engine.compressorEnabled.load(), engine.compressorThreshold.load(),
+                         engine.compressorRatio.load(), engine.compressorAttack.load(),
+                         engine.compressorRelease.load(), engine.compressorMakeup.load() };
+        auto safe = Component::SafePointer<StationPanel>(this);
+        auto* content = new StationCompressorControls(initial, [safe](Values v) {
+            if (!safe) return;
+            auto& e = safe->engine;
+            e.compressorEnabled = v.enabled; e.compressorThreshold = v.threshold; e.compressorRatio = v.ratio;
+            e.compressorAttack = v.attack; e.compressorRelease = v.release; e.compressorMakeup = v.makeup;
+            safe->save();
+        });
+        DialogWindow::LaunchOptions options;
+        options.content.setOwned(content); options.dialogTitle = "Broadcast compressor";
+        options.dialogBackgroundColour = Colour(0xff192631); options.escapeKeyTriggersCloseButton = true;
+        options.useNativeTitleBar = true; options.resizable = false; options.launchAsync();
     }
     void showDeviceSettings() {
         auto* content=new AudioDeviceSelectorComponent(engine.devices,0,32,2,32,false,false,true,false);content->setSize(520,520);
