@@ -25,9 +25,12 @@ public:
     AudioTransportSource transport;
     std::unique_ptr<AudioFormatReaderSource> fileSource;
     std::atomic<bool> remoteOn { false }, micOn { false }, duck { false }, cueRemote { false };
+    std::atomic<bool> compressorEnabled { true };
     std::atomic<float> localLevel { 0.8f }, remoteLevel { 0.8f }, micLevel { 0.7f }, headphones { 0.7f }, fade { 1.f };
+    std::atomic<float> compressorThreshold { -12.f }, compressorRatio { 2.f };
+    std::atomic<float> compressorAttack { 10.f }, compressorRelease { 100.f }, compressorMakeup { 0.f };
     std::atomic<int> programPair { 0 }, cuePair { 2 }, micInput { 0 };
-    std::atomic<float> programPeak { 0 }, remotePeak { 0 }, fadePosition { 0 };
+    std::atomic<float> programPeak { 0 }, remotePeak { 0 }, fadePosition { 0 }, compressorReduction { 0 };
     std::atomic<bool> playing { false }, ended { false }, audioRunning { false };
     std::atomic<double> position { 0 };
     double duration = 0;
@@ -91,7 +94,7 @@ public:
         remoteBuffer.setSize(2, capacity); localBuffer.setSize(2, capacity);
         receiver.setPlayConfigDetails(2, 2, sampleRate, block);
         receiver.prepareToPlay(sampleRate, block);
-        transport.prepareToPlay(block, sampleRate); mix.reset(sampleRate);
+        transport.prepareToPlay(block, sampleRate); mix.reset(sampleRate); compressor.reset(sampleRate);
         // Device restart preserves the selected source without briefly airing local audio.
         mix.remoteMix = remoteOn ? 1.f : 0.f;
     }
@@ -115,23 +118,38 @@ public:
         bool broadcastValid = out >= 0 && out + 1 < nOut && outputs[out] && outputs[out+1];
         bool cueValid = cue >= 0 && cue + 1 < nOut && outputs[cue] && outputs[cue+1]
                         && (cue + 1 < out || cue > out + 1);
+        const bool compress = compressorEnabled.load();
+        const float threshold = compressorThreshold.load(), ratio = compressorRatio.load();
+        const float attack = compressorAttack.load(), release = compressorRelease.load();
+        const float makeup = compressorMakeup.load();
         float peak = 0, remoteMax = 0;
+        float maximumReduction = 0;
         for (int i = 0; i < count; ++i) {
             mix.advance(remoteOn, fade, duck, micOn ? micLevel.load() : 0.f);
             float voice = mic >= 0 && mic < nIn && inputs[mic] ? inputs[mic][i] : 0;
-            for (int c = 0; c < 2; ++c) {
-                float incoming = remoteBuffer.getSample(c, i);
-                float program = mix.program(localBuffer.getSample(c, i), incoming, voice, localLevel, remoteLevel);
-                peak = std::max(peak, std::abs(program)); remoteMax = std::max(remoteMax, std::abs(incoming));
-                if (broadcastValid) outputs[out+c][i] = jlimit(-1.f, 1.f, program);
-                if (cueValid) outputs[cue+c][i] = jlimit(-1.f, 1.f, (cueRemote ? incoming : program) * headphones.load());
+            float incomingLeft = remoteBuffer.getSample(0, i), incomingRight = remoteBuffer.getSample(1, i);
+            float programLeft = mix.program(localBuffer.getSample(0, i), incomingLeft, voice, localLevel, remoteLevel);
+            float programRight = mix.program(localBuffer.getSample(1, i), incomingRight, voice, localLevel, remoteLevel);
+            auto processed = compressor.process(programLeft, programRight, compress, threshold, ratio, attack, release, makeup);
+            maximumReduction = std::max(maximumReduction, compressor.gainReductionDb);
+            peak = std::max({peak, std::abs(processed[0]), std::abs(processed[1])});
+            remoteMax = std::max({remoteMax, std::abs(incomingLeft), std::abs(incomingRight)});
+            if (broadcastValid) {
+                outputs[out][i] = jlimit(-1.f, 1.f, processed[0]);
+                outputs[out+1][i] = jlimit(-1.f, 1.f, processed[1]);
+            }
+            if (cueValid) {
+                outputs[cue][i] = jlimit(-1.f, 1.f, (cueRemote ? incomingLeft : processed[0]) * headphones.load());
+                outputs[cue+1][i] = jlimit(-1.f, 1.f, (cueRemote ? incomingRight : processed[1]) * headphones.load());
             }
         }
         programPeak = peak; remotePeak = remoteMax; fadePosition = mix.remoteMix;
+        compressorReduction = maximumReduction;
     }
 private:
     AudioBuffer<float> remoteBuffer, localBuffer;
     StationMix mix;
+    StationCompressor compressor;
     int capacity = 0;
     double sampleRate = 48000;
 };
@@ -229,6 +247,8 @@ public:
         button(duck,"Duck program",[this] {engine.duck=!engine.duck;duck.setToggleState(engine.duck,dontSendNotification);});
         slider(micVolume,"Mic level",0,2,.01,.7,[this](double v) {engine.micLevel=float(v);});
         slider(cueVolume,"Headphone level",0,1,.01,.7,[this](double v) {engine.headphones=float(v);});
+        button(compressorControls,"Compressor: ON · GR 0.0 dB",[this] {showCompressorSettings();});
+        compressorControls.setTooltip("Broadcast compressor for the complete mix, including the microphone.");
         for(auto* combo:{&programRoute,&cueRoute,&micRoute})addAndMakeVisible(combo);
         programRoute.setTextWhenNothingSelected("Broadcast output pair");cueRoute.setTextWhenNothingSelected("Headphone output pair");micRoute.setTextWhenNothingSelected("Microphone input");
         programRoute.onChange=[this] {engine.programPair=programRoute.getSelectedId()-1;save();};
@@ -286,6 +306,7 @@ public:
         connect.setBounds(x,261,120,30);disconnect.setBounds(x+130,261,90,30);connection.setBounds(x,302,col,25);
         peers.setBounds(x,336,col,30);audition.setBounds(x,380,col,30);remoteVolume.setBounds(x,558,col,30);
         micTitle.setBounds(36,627,235,24);micToggle.setBounds(36,665,95,30);duck.setBounds(141,665,125,30);
+        compressorControls.setBounds(790,627,w-826,26);
         micVolume.setBounds(280,664,230,30);cueVolume.setBounds(530,664,230,30);micRoute.setBounds(780,665,w-816,30);
         programRoute.setBounds(36,708,240,27);cueRoute.setBounds(288,708,240,27);routing.setBounds(540,708,w-576,27);
         automationTitle.setBounds(36,772,240,24);int cell=(w-72)/4;
@@ -310,7 +331,7 @@ private:
     LookAndFeel_V4 lnf;
     OwnedArray<Label> sliderLabels;
     Label title,subtitle,onAir,status,localTitle,nowPlaying,progress,remoteTitle,connection,micTitle,routing,automationTitle,automationNote;
-    TextButton audio,settings,feedSettings,local,remote,addFiles,playPause,skip,moveUp,moveDown,remove,connect,disconnect,audition,micToggle,duck;
+    TextButton audio,settings,feedSettings,local,remote,addFiles,playPause,skip,moveUp,moveDown,remove,connect,disconnect,audition,micToggle,duck,compressorControls;
     Slider crossfade,localVolume,remoteVolume,micVolume,cueVolume;
     TextEditor group,password;
     ComboBox peers,programRoute,cueRoute,micRoute;
@@ -483,6 +504,36 @@ private:
             delete dialog;
         }),false);
     }
+    void showCompressorSettings() {
+        auto* dialog=new AlertWindow("Broadcast compressor",
+            "Processing is applied to the complete broadcast mix after source mixing, including the microphone. Headphone program monitoring follows the processed mix.",
+            AlertWindow::NoIcon);
+        dialog->addToggleButton("enabled","Enable compressor",engine.compressorEnabled.load());
+        dialog->addSlider("Threshold (dB)",engine.compressorThreshold.load(),-30.0,0.0,0.5);
+        dialog->addSlider("Ratio",engine.compressorRatio.load(),1.0,10.0,0.1);
+        dialog->addSlider("Attack (ms)",engine.compressorAttack.load(),1.0,100.0,1.0);
+        dialog->addSlider("Release (ms)",engine.compressorRelease.load(),20.0,500.0,5.0);
+        dialog->addSlider("Makeup gain (dB)",engine.compressorMakeup.load(),0.0,12.0,0.5);
+        if(auto* s=dialog->getSliderComponent("Threshold (dB)"))s->setTextValueSuffix(" dB");
+        if(auto* s=dialog->getSliderComponent("Attack (ms)"))s->setTextValueSuffix(" ms");
+        if(auto* s=dialog->getSliderComponent("Release (ms)"))s->setTextValueSuffix(" ms");
+        if(auto* s=dialog->getSliderComponent("Makeup gain (dB)"))s->setTextValueSuffix(" dB");
+        dialog->addButton("Apply",1,KeyPress(KeyPress::returnKey));
+        dialog->addButton("Cancel",0,KeyPress(KeyPress::escapeKey));
+        dialog->enterModalState(true,ModalCallbackFunction::create([safe=Component::SafePointer<StationPanel>(this),dialog](int result) {
+            if(safe&&result==1) {
+                auto& e=safe->engine;
+                e.compressorEnabled=dialog->getToggleButtonComponent("enabled")->getToggleState();
+                e.compressorThreshold=float(dialog->getSliderComponent("Threshold (dB)")->getValue());
+                e.compressorRatio=float(dialog->getSliderComponent("Ratio")->getValue());
+                e.compressorAttack=float(dialog->getSliderComponent("Attack (ms)")->getValue());
+                e.compressorRelease=float(dialog->getSliderComponent("Release (ms)")->getValue());
+                e.compressorMakeup=float(dialog->getSliderComponent("Makeup gain (dB)")->getValue());
+                safe->save();
+            }
+            delete dialog;
+        }),false);
+    }
     void showDeviceSettings() {
         auto* content=new AudioDeviceSelectorComponent(engine.devices,0,32,2,32,false,false,true,false);content->setSize(520,520);
         DialogWindow::LaunchOptions o;o.content.setOwned(content);o.dialogTitle="Station audio device";o.dialogBackgroundColour=Colour(0xff192631);o.escapeKeyTriggersCloseButton=true;o.useNativeTitleBar=true;o.resizable=false;o.launchAsync();
@@ -500,6 +551,9 @@ private:
         if(pendingJoin&&engine.receiver.isConnectedToServer()) {engine.receiver.joinServerGroup(group.getText().trim(),password.getText(),false);pendingJoin=false;}
         else if(pendingJoin&&Time::getMillisecondCounterHiRes()-connectionStart>15000) {pendingJoin=false;status.setText("Connection timed out. Check internet access and try again.",dontSendNotification);}
         connection.setText(engine.receiver.getCurrentJoinedGroup().isNotEmpty()?"In group: "+engine.receiver.getCurrentJoinedGroup():pendingJoin?"Connecting...":"Not in a group",dontSendNotification);
+        String compressorText=engine.compressorEnabled?"Compressor: ON":"Compressor: OFF";
+        if(engine.compressorEnabled)compressorText+=" · GR "+String(engine.compressorReduction.load(),1)+" dB";
+        compressorControls.setButtonText(compressorText);
         String signature;int count=engine.receiver.getNumberRemotePeers();for(int i=0;i<count;++i)signature+=engine.receiver.getRemotePeerUserName(i)+"\n";
         if(signature!=peerSignature) {peerSignature=signature;peers.clear(dontSendNotification);for(int i=0;i<count;++i)peers.addItem(engine.receiver.getRemotePeerUserName(i),i+1);for(int i=0;i<count;++i)if(engine.receiver.getRemotePeerUserName(i)==selectedPeer)peers.setSelectedId(i+1,dontSendNotification);}
         for(int i=0;i<count;++i)engine.receiver.setRemotePeerLevelGain(i,engine.receiver.getRemotePeerUserName(i)==selectedPeer&&selectedPeer.isNotEmpty()?1.f:0.f);
@@ -538,6 +592,8 @@ private:
         if(playlist.current){o->setProperty("current",trackJSON(*playlist.current));o->setProperty("position",engine.position.load());}
         o->setProperty("feedURL",feedURL);o->setProperty("feed",feedSnapshot());
         o->setProperty("fade",double(engine.fade));o->setProperty("local",double(engine.localLevel));o->setProperty("remote",double(engine.remoteLevel));o->setProperty("mic",double(engine.micLevel));o->setProperty("phones",double(engine.headphones));
+        o->setProperty("compressorEnabled",bool(engine.compressorEnabled));o->setProperty("compressorThreshold",double(engine.compressorThreshold));o->setProperty("compressorRatio",double(engine.compressorRatio));
+        o->setProperty("compressorAttack",double(engine.compressorAttack));o->setProperty("compressorRelease",double(engine.compressorRelease));o->setProperty("compressorMakeup",double(engine.compressorMakeup));
         o->setProperty("programPair",int(engine.programPair));o->setProperty("cuePair",int(engine.cuePair));o->setProperty("micInput",int(engine.micInput));
         auto f=preferences();f.getParentDirectory().createDirectory();f.replaceWithText(JSON::toString(root));if(auto xml=engine.devices.createStateXml())f.getSiblingFile("AudioDevice.xml").replaceWithText(xml->toString());
     }
@@ -558,6 +614,12 @@ private:
         }
         auto restoreSlider=[&](const char* key,Slider& s){if(data.hasProperty(key))s.setValue(double(data[key]),sendNotificationSync);};
         restoreSlider("fade",crossfade);restoreSlider("local",localVolume);restoreSlider("remote",remoteVolume);restoreSlider("mic",micVolume);restoreSlider("phones",cueVolume);
+        if(data.hasProperty("compressorEnabled"))engine.compressorEnabled=bool(data["compressorEnabled"]);
+        if(data.hasProperty("compressorThreshold"))engine.compressorThreshold=jlimit(-30.f,0.f,float(data["compressorThreshold"]));
+        if(data.hasProperty("compressorRatio"))engine.compressorRatio=jlimit(1.f,10.f,float(data["compressorRatio"]));
+        if(data.hasProperty("compressorAttack"))engine.compressorAttack=jlimit(1.f,100.f,float(data["compressorAttack"]));
+        if(data.hasProperty("compressorRelease"))engine.compressorRelease=jlimit(20.f,500.f,float(data["compressorRelease"]));
+        if(data.hasProperty("compressorMakeup"))engine.compressorMakeup=jlimit(0.f,12.f,float(data["compressorMakeup"]));
         if(data.hasProperty("programPair"))engine.programPair=jlimit(0,30,int(data["programPair"]));
         if(data.hasProperty("cuePair"))engine.cuePair=jlimit(0,30,int(data["cuePair"]));if(data.hasProperty("micInput"))engine.micInput=jlimit(0,31,int(data["micInput"]));
         feedURL=data["feedURL"].toString();

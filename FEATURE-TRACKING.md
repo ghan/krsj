@@ -7,7 +7,7 @@ This document tracks the next improvements to Station Desk and the Radio Saint J
 ### Ready to work on
 
 - [ ] **Archive dated Journalism files.** When a filename in the Journalism folder starts with a date in `YYYY.MM.DD` format, move it to `Archive/YYYY/` outside the active Journalism folder. Keep the original audio and filename; do not delete it.
-- [ ] **Add output compression/mastering.** Add a simple mastering chain to the complete station output, including the microphone, so the broadcast level is more consistent. Use sensible documented defaults and check the sound by listening. Folder-specific processing settings are a future feature and are out of scope for this pass.
+- [ ] **Add output compression/mastering.** Implementation is in progress: a stereo-linked soft-knee compressor is being added after the complete station mix, including the microphone, with persistent controls and documented defaults. The station listening check remains before completion. Folder-specific processing settings are a future feature and are out of scope for this pass.
 - [ ] **Fill missing artist metadata from the containing folder.** Preserve embedded artist metadata; when it is missing, use the track's parent folder name in the queue and website feed.
 - [ ] **Purge expired published updates.** Ensure stale now-playing data is cleared and old playback history is pruned from stored and served feed data, including when the broadcaster stops sending updates. The current feed behavior expires now-playing after 90 seconds and retains two hours of history; align the history window with the one-hour website requirement below.
 

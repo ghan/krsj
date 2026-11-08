@@ -34,7 +34,7 @@ These assertions describe the present implementation. They are not independent p
 | Microphone | Manual mic toggle adds the selected input over either program source. No voice-triggered activation. Invalid input selection contributes silence. |
 | Duck | Manual toggle reduces program by about 12 dB; it does not reduce the microphone. No automatic voice-triggered ducking. |
 | Levels | Default local and remote gains are 0.8, microphone 0.7, headphone gain 0.7. Local/remote sliders range 0–1.5, mic 0–2, headphones 0–1. |
-| Output protection | Clamp final output samples to ±1; show the peak before that clamp. This is not a loudness normalizer or broadcast limiter. |
+| Output protection | Apply a stereo-linked, 6 dB soft-knee compressor to the full broadcast mix, including microphone, before the final ±1 clamp. Defaults: −12 dBFS threshold, 2:1 ratio, 10 ms attack, 100 ms release, and 0 dB makeup gain. The clamp remains a safety ceiling, not a loudness normalizer. |
 | Routing | Default broadcast is channels 1/2, headphone cue 3/4, microphone input 1. Select among active channels. Overlapping headphone/program pairs disable cue to preserve program audio. Unavailable output channels remain silent. |
 | Cue | Headphones can audition program or the remote source at an independent level. Remote audition excludes local program and mic. |
 | Preferences | Persist queue/order, shuffle state, folders/rules, counters, levels/routes, and paused current track/position. Discard missing files and tolerate malformed preferences. Group passwords are not saved. |
