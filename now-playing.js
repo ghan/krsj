@@ -15,8 +15,8 @@
       if (!response.ok) throw Error("Feed unavailable");
       const feed = await response.json();
       current.textContent = feed.now ? title(feed.now) : "Track information is temporarily unavailable.";
-      status.textContent = feed.stale ? "Last received playlist information" : "Recently played · past two hours";
-      const cutoff = Date.now() - 2 * 60 * 60 * 1000;
+      status.textContent = feed.stale ? "Last received playlist information" : "Recently played · past hour";
+      const cutoff = Date.now() - 60 * 60 * 1000;
       history.replaceChildren(...feed.history.filter(event => event.ended_at > cutoff).map(event => {
         const item = document.createElement("li");
         item.dataset.endedAt = String(event.ended_at);
@@ -29,7 +29,7 @@
       status.textContent = "Last received playlist information";
       for (const item of history.children) {
         const timestamp = Number(item.dataset.endedAt);
-        if (timestamp < Date.now() - 2 * 60 * 60 * 1000) item.remove();
+        if (timestamp < Date.now() - 60 * 60 * 1000) item.remove();
       }
     }
   }

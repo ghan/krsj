@@ -5,5 +5,5 @@ compatibility_date = "2026-10-24"
 [[d1_databases]]
 binding = "DB"
 database_name = "krsj-playback"
-database_id = "REPLACE_WITH_DATABASE_ID"
+database_id = "2ed06c3a-ee4a-47d9-98a7-b2bbdcaf85ef"
 migrations_dir = "migrations"
