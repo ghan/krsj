@@ -26,7 +26,7 @@ These assertions describe the present implementation. They are not independent p
 | Simultaneous inserts | Inherited priority: Promos, Journalism, then Station IDs. Coalesce an overdue category to one insertion, rather than replaying every missed interval. |
 | Clock | Display America/Los_Angeles station time. Intervals include their start and exclude their end. A boundary exactly at an end belongs to the next row. |
 | Formats | The decoder tests cover WAV, AIFF, FLAC, Ogg/Vorbis, MP3, and M4A/AAC. An extension alone does not establish codec support. Ogg fixtures explicitly contain Vorbis. |
-| Metadata | Prefer available title/artist tags; fall back to filename for title. No inferred remote song names. |
+| Metadata | Prefer available title/artist tags; fall back to filename for title and containing folder for a missing artist. No inferred remote song names. |
 | Bad files | Exclude unreadable files from scans or skip them during advance. Stop with a visible status if no playable local source remains. |
 | Group controls | Require a nonempty group name; report a pending connection timeout after 15 seconds. Joining a group does not automatically put a newly arrived DJ on air. |
 | Remote isolation | Only the operator-selected peer is mixed into the remote source. New/unselected peers begin muted. Local program and microphone are not sent back to the remote DJ. |

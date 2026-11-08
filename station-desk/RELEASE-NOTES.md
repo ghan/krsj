@@ -4,6 +4,8 @@ Drag upcoming tracks or use the arrow buttons to reorder them. Operator edits ta
 
 The outbound website publisher records now-playing and the last two hours actually played. Cloudflare feed activation requires a station account, database, and publisher key; see feed/README.md. Remote sessions are labeled with the selected DJ's name.
 
+When a track has no embedded artist metadata, Station Desk uses its containing folder name as the artist in the queue and website feed.
+
 Download the universal DMG, open it, and drag Station Desk into Applications. Supports Apple silicon and Intel Macs running macOS 11+. This development build is ad hoc signed and is not Apple notarized; first launch may require Privacy & Security → Open Anyway.
 
 Automated checks cover the scheduler, real decoder EOF-to-insertion path using a simulated device, routing, persistence, feed validation, and native window lifecycle. Five deliberate scheduler faults must be rejected by the revised behavioral tests. Physical broadcast-device routing and a live internet DJ session still require a listening check on the station hardware.

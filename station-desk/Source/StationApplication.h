@@ -383,6 +383,7 @@ private:
         auto name=reader->metadataValues.getValue("title",reader->metadataValues.getValue("id3title",file.getFileNameWithoutExtension()));
         if(name.trim().isEmpty())name=file.getFileNameWithoutExtension();
         auto artist=reader->metadataValues.getValue("artist",reader->metadataValues.getValue("id3artist",""));
+        if(artist.trim().isEmpty())artist=file.getParentDirectory().getFileName();
         return station::Track{file.getFullPathName().toStdString(),name.toStdString(),artist.toStdString(),double(reader->lengthInSamples)/reader->sampleRate,category};
     }
     void chooseFiles() {
