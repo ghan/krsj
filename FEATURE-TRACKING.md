@@ -1,15 +1,15 @@
 # Station Desk and website feature tracking
 
-This document tracks the next improvements to Station Desk and the Radio Saint Johns website. Status describes readiness to start, not implementation progress.
+This document tracks decisions and implementation status for Station Desk and the Radio Saint Johns website. Completed means the change is shipped; any remaining operational check is called out separately.
 
 ## A. Improve the listening experience
 
 ### Ready to work on
 
 - [ ] **Archive dated Journalism files.** When a filename in the Journalism folder starts with a date in `YYYY.MM.DD` format, move it to `Archive/YYYY/` outside the active Journalism folder. Keep the original audio and filename; do not delete it.
-- [ ] **Add output compression/mastering.** Implementation is in progress: a stereo-linked soft-knee compressor is being added after the complete station mix, including the microphone, with persistent controls and documented defaults. The station listening check remains before completion. Folder-specific processing settings are a future feature and are out of scope for this pass.
-- [ ] **Fill missing artist metadata from the containing folder.** Preserve embedded artist metadata; when it is missing, use the track's parent folder name in the queue and website feed.
-- [ ] **Purge expired published updates.** Ensure stale now-playing data is cleared and old playback history is pruned from stored and served feed data, including when the broadcaster stops sending updates. The current feed behavior expires now-playing after 90 seconds and retains two hours of history; align the history window with the one-hour website requirement below.
+- [x] **Add output compression/mastering.** Shipped in Station Desk 0.2.0 build 9. A stereo-linked soft-knee compressor processes the complete broadcast mix, including the microphone, with persistent controls and documented defaults. **Still needed:** listen on the station setup and adjust the defaults if needed. Folder-specific processing settings are a future feature and are out of scope for this pass.
+- [x] **Fill missing artist metadata from the containing folder.** Shipped in Station Desk 0.2.0 build 6. Embedded artist metadata is preserved; the parent folder name is used when it is missing.
+- [ ] **Purge expired published updates.** Now-playing expires publicly after 90 seconds without updates. The website filters history to one hour, while the worker currently stores and serves up to two hours. Change retention to one hour and ensure old persisted data is purged even when the broadcaster stops sending updates.
 
 ### Not ready to work on
 
@@ -19,16 +19,17 @@ This document tracks the next improvements to Station Desk and the Radio Saint J
 
 ### Ready to work on
 
-- [ ] **Show now playing and the last hour of history.** Display the currently playing song and actual playback history covering the previous hour. Update the feed retention, website labels, and client-side cutoff together. Keep upcoming queue choices private. Current implementation displays two hours.
-- [ ] **Add a mailing list.** Provide a clear signup on the static site and connect it to a mailing-list service. Choose the provider and subscription flow during implementation; confirm signup, confirmation, and unsubscribe behavior.
+- [x] **Show now playing and the last hour of history.** Shipped on the static site. The page shows current playback and filters actual history to the previous hour; upcoming queue choices remain private. Feed storage/retention still holds two hours; see the purge item above.
+- [x] **Link the message group.** The static site links to the KRSJ Google Group at `https://groups.google.com/g/krsj`. The `/members` URL was rejected because it opened a member-list view.
 
 ## Completion checks
 
 - Journalism files with a valid date prefix no longer appear in the active Journalism folder and remain recoverable from the archive; other filenames are unaffected.
-- Output processing is enabled on the intended broadcast output, has documented defaults, and passes a listening check for level consistency and artifacts.
-- Expired current-playback state and history are removed from persisted/served feed data on schedule, including after publishing stops.
-- The website identifies the current song and shows only actual playback within the previous hour.
-- A visitor can join the mailing list from the site and can complete the mailing-list provider's confirmation and unsubscribe flows.
+- The Journalism archive move preserves original audio and filenames and affects only files with valid `YYYY.MM.DD` prefixes.
+- The compressor is enabled on the broadcast mix and passes an on-air listening check for level consistency and artifacts.
+- Expired history is removed from persistent feed storage and public responses, including after publishing stops; public retention is one hour.
+- The site continues to display current playback and only history from the previous hour.
+- The Google Group join link opens the group's join flow with the intended membership settings.
 
 ## Related implementation notes
 

@@ -11,7 +11,7 @@ The station operator's instructions in the October 24, 2026 conversation take pr
 - Use shuffled cycles, exhausting a folder before repeating. Small libraries may repeat to maintain continuous playback.
 - Show the first quarter-hour wall-clock marker that occurs during each track. At most one marker per track. A track with no quarter-hour boundary has no marker.
 - Hold the local playlist during remote DJ playback; resuming local shifts its estimates.
-- The website shows now playing and the last two hours actually played. It does not publish upcoming choices.
+- The website shows now playing and filters actual playback history to the last hour. The feed worker currently stores and serves up to two hours pending the one-hour retention roadmap item. It does not publish upcoming choices.
 - Remote sessions appear as Remote DJ plus the selected name, with no invented per-song remote metadata.
 - Send outbound updates to a hosted service. Public website readers cannot control playback.
 
