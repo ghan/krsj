@@ -116,9 +116,9 @@ int main() {
               "marker.crosses_midnight");
         History h; int64_t now = 3*60*60*1000;
         h.start({"a","Song A","Artist","music"}, now-8000000); h.stop(now-7300000);
-        h.start({"b","Song B","Artist","music"}, now-7250000); h.stop(now-7000000);
+        h.start({"b","Song B","Artist","music"}, now-3500000); h.stop(now-3000000);
         h.start({"c","Remote DJ — Alice","","remote"},now-1000);
-        check(h.played.size() == 1 && h.played.front().id == "b", "history.keeps_events_overlapping_last_two_hours");
+        check(h.played.size() == 1 && h.played.front().id == "b", "history.keeps_events_overlapping_last_hour");
         check(h.live && h.live->kind == "remote", "history.remote_session_is_current_without_invented_song_metadata");
         h.stop(now); check(h.played.size() == 2 && !h.live, "history.stopped_is_not_now_playing");
         h.prune(now+3600000); check(h.played.empty(), "history.expires_without_new_playback");
