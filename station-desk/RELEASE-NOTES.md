@@ -2,7 +2,7 @@ Station Desk now prepares the next hour of local playback from the folder rotati
 
 Drag upcoming tracks or use the arrow buttons to reorder them. Operator edits take precedence over generated rotation. Quarter-hour markers show the first time boundary falling within each track. Remote sessions hold the local queue; returning to local shifts its estimates.
 
-The outbound website publisher records now-playing and the last two hours actually played. Cloudflare feed activation requires a station account, database, and publisher key; see feed/README.md. Remote sessions are labeled with the selected DJ's name.
+The outbound website publisher records now-playing and the last hour actually played. Cloudflare feed activation requires a station account, database, and publisher key; see feed/README.md. Remote sessions are labeled with the selected DJ's name.
 
 When a track has no embedded artist metadata, Station Desk uses its containing folder name as the artist in the queue and website feed.
 

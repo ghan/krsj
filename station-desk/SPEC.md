@@ -11,7 +11,7 @@ The station operator's instructions in the October 24, 2026 conversation take pr
 - Use shuffled cycles, exhausting a folder before repeating. Small libraries may repeat to maintain continuous playback.
 - Show the first quarter-hour wall-clock marker that occurs during each track. At most one marker per track. A track with no quarter-hour boundary has no marker.
 - Hold the local playlist during remote DJ playback; resuming local shifts its estimates.
-- The website shows now playing and filters actual playback history to the last hour. The feed worker currently stores and serves up to two hours pending the one-hour retention roadmap item. It does not publish upcoming choices.
+- The website shows now playing and filters actual playback history to the last hour. The feed worker stores and serves up to one hour and purges persisted history hourly. It does not publish upcoming choices.
 - Remote sessions appear as Remote DJ plus the selected name, with no invented per-song remote metadata.
 - Send outbound updates to a hosted service. Public website readers cannot control playback.
 
@@ -28,7 +28,8 @@ These are assumptions for review, not requirements established by the existence 
 - Intervals include their start and exclude their end. A marker exactly at a track boundary belongs to the track starting there. App and website display station time in America/Los_Angeles. The app's timezone can be overridden with STATION_DESK_TIMEZONE.
 - Prefer embedded title/artist metadata, falling back to the filename for title and the containing folder name for a missing artist. History records actual playback segments, including skipped songs and separate local segments surrounding a remote session or pause.
 - Apply a stereo-linked soft-knee compressor to the complete broadcast mix after local/remote mixing, ducking, and microphone addition. Defaults are enabled, threshold -12 dBFS, ratio 2:1, 10 ms attack, 100 ms release, and 0 dB makeup gain. Persist the operator controls. The headphone program cue follows the processed mix; remote-only audition stays raw. Keep the final ±1.0 output clamp as a safety ceiling. Folder-specific processing remains out of scope.
-- Website updates use a 15-second heartbeat, retry off the audio thread, and expire now-playing information after 90 seconds without an update. Played history expires after two hours, including when broadcasting stops. Failed publishing does not interrupt audio.
+- Website updates use a 15-second heartbeat, retry off the audio thread, and expire now-playing information after 90 seconds without an update. Played history expires after one hour, including when broadcasting stops. Failed publishing does not interrupt audio.
+- When the Journalism folder is scanned, files at its top level whose names begin with a valid `YYYY.MM.DD` date move to the sibling `Archive/YYYY/` folder. The original filename is retained; existing destination files are left untouched.
 - Reopening restores operator order and remaining shuffle bags. Unreadable files are excluded or skipped; no playable library means a visible stopped status.
 - The inherited Ogg-format check means Vorbis audio in an Ogg container. Other codecs can also use the `.ogg` extension; the file extension alone does not establish decoder support. Test fixtures explicitly select and verify Vorbis.
 

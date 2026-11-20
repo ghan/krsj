@@ -63,11 +63,11 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release create "station-desk-0.2.0-${GITHUB_RUN_NUMBER}" \
-            .build/releases/Station-Desk-0.2.0-universal.dmg \
-            .build/releases/Station-Desk-0.2.0-universal.dmg.sha256 \
+          gh release create "station-desk-0.2.1" \
+            .build/releases/Station-Desk-0.2.1-universal.dmg \
+            .build/releases/Station-Desk-0.2.1-universal.dmg.sha256 \
             --target "$GITHUB_SHA" --latest \
-            --title "Station Desk 0.2.0 (build ${GITHUB_RUN_NUMBER})" \
+            --title "Station Desk 0.2.1" \
             --notes-file station-desk/RELEASE-NOTES.md
       - uses: actions/upload-artifact@v7
         if: always()

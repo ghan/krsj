@@ -2,6 +2,9 @@ name = "krsj-playback-feed"
 main = "worker.mjs"
 compatibility_date = "2026-10-24"
 
+[triggers]
+crons = ["17 * * * *"]
+
 [[d1_databases]]
 binding = "DB"
 database_name = "krsj-playback"

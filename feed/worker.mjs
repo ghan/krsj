@@ -1,5 +1,5 @@
 // Station Desk pushes metadata here. Public readers can only fetch history.
-const TWO_HOURS = 2 * 60 * 60 * 1000;
+const ONE_HOUR = 60 * 60 * 1000;
 const MAX_BYTES = 1024 * 1024;
 const cors = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Methods": "GET, OPTIONS",
   "Access-Control-Allow-Headers": "Content-Type", "Cache-Control": "no-store" };
@@ -22,7 +22,7 @@ export function validateSnapshot(input, now = Date.now()) {
   if ((input.state === "stopped") !== (input.now === null)) throw Error("Inconsistent current playback");
   const current = input.now === null ? null : event(input.now, true, now);
   if (current && ((input.state === "remote") !== (current.kind === "remote"))) throw Error("Inconsistent source");
-  const history = input.history.map(e => event(e, false, now)).filter(e => e.ended_at > now - TWO_HOURS);
+  const history = input.history.map(e => event(e, false, now)).filter(e => e.ended_at > now - ONE_HOUR);
   if (new Set(history.map(e => e.id)).size !== history.length || history.some(e => e.id === current?.id)) throw Error("Duplicate playback event");
   return { version: 1, updated_at: input.updated_at, state: input.state, now: current, history };
 }
@@ -30,10 +30,22 @@ export function publicSnapshot(stored, now = Date.now()) {
   const stale = !stored || now - stored.updated_at > 90000;
   return { version: 1, updated_at: stored?.updated_at ?? null, stale,
     state: stale ? "unavailable" : stored.state, now: stale ? null : stored.now,
-    history: (stored?.history ?? []).filter(e => e.ended_at > now - TWO_HOURS)
+    history: (stored?.history ?? []).filter(e => e.ended_at > now - ONE_HOUR)
       .sort((a, b) => b.started_at - a.started_at) };
 }
+async function purgeExpired(env, now = Date.now()) {
+  const row = await env.DB.prepare("SELECT snapshot FROM playback_snapshot WHERE id = 1").first();
+  if (!row) return;
+  const stored = JSON.parse(row.snapshot);
+  const history = (stored.history ?? []).filter(e => e.ended_at > now - ONE_HOUR);
+  if (history.length !== (stored.history ?? []).length) {
+    stored.history = history;
+    await env.DB.prepare("UPDATE playback_snapshot SET snapshot = ? WHERE id = 1")
+      .bind(JSON.stringify(stored)).run();
+  }
+}
 export default {
+  async scheduled(_event, env, ctx) { ctx.waitUntil(purgeExpired(env)); },
   async fetch(request, env) {
     const path = new URL(request.url).pathname;
     if (request.method === "OPTIONS" && path === "/feed.json") return new Response(null, { status: 204, headers: cors });

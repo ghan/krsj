@@ -18,10 +18,10 @@ test("exports metadata without paths or arbitrary private fields", () => {
   const s = validateSnapshot(snapshot(), now);
   assert.equal(s.now.title, "A song"); assert.equal("path" in s.now, false);
 });
-test("keeps only actual history overlapping the past two hours", () => {
+test("keeps only actual history overlapping the past hour", () => {
   const s = snapshot();
-  s.history = [{ ...song, id: "old", started_at: now - 9000000, ended_at: now - 7200000 },
-    { ...song, id: "overlap", started_at: now - 8000000, ended_at: now - 7100000 }];
+  s.history = [{ ...song, id: "old", started_at: now - 7200000, ended_at: now - 3600001 },
+    { ...song, id: "overlap", started_at: now - 4000000, ended_at: now - 3599000 }];
   assert.deepEqual(validateSnapshot(s, now).history.map(e => e.id), ["overlap"]);
 });
 test("stale broadcaster stops claiming a track is currently playing", () => {

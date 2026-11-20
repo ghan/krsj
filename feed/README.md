@@ -2,7 +2,7 @@
 
 Station Desk sends authenticated HTTPS snapshots to a Cloudflare Worker backed by one D1 row. GitHub Pages reads public JSON. No inbound HTTP server, port forwarding, or public access to the broadcast computer is required.
 
-The snapshot contains now-playing metadata and actual history overlapping the last two hours. It contains no local file paths, future playlist, or audio. Remote sessions have a Remote DJ label. Repeated/out-of-order delivery cannot overwrite newer state. Public now-playing becomes unavailable after a 90-second missed heartbeat; history continues to expire independently.
+The snapshot contains now-playing metadata and actual history overlapping the last hour. It contains no local file paths, future playlist, or audio. Remote sessions have a Remote DJ label. Repeated/out-of-order delivery cannot overwrite newer state. Public now-playing becomes unavailable after a 90-second missed heartbeat; history is filtered publicly and purged from D1 hourly, including after broadcasting stops.
 
 ## Activate with your Cloudflare account
 

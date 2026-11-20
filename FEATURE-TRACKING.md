@@ -6,10 +6,10 @@ This document tracks decisions and implementation status for Station Desk and th
 
 ### Ready to work on
 
-- [ ] **Archive dated Journalism files.** When a filename in the Journalism folder starts with a date in `YYYY.MM.DD` format, move it to `Archive/YYYY/` outside the active Journalism folder. Keep the original audio and filename; do not delete it.
+- [x] **Archive dated Journalism files.** When a filename in the Journalism folder starts with a valid date in `YYYY.MM.DD` format, move it to `Archive/YYYY/` outside the active Journalism folder. Keep the original audio and filename; do not delete it. Implemented for top-level files when the folder is scanned; collisions are left in Journalism.
 - [x] **Add output compression/mastering.** Shipped in Station Desk 0.2.0 build 9. A stereo-linked soft-knee compressor processes the complete broadcast mix, including the microphone, with persistent controls and documented defaults. **Still needed:** listen on the station setup and adjust the defaults if needed. Folder-specific processing settings are a future feature and are out of scope for this pass.
 - [x] **Fill missing artist metadata from the containing folder.** Shipped in Station Desk 0.2.0 build 6. Embedded artist metadata is preserved; the parent folder name is used when it is missing.
-- [ ] **Purge expired published updates.** Now-playing expires publicly after 90 seconds without updates. The website filters history to one hour, while the worker currently stores and serves up to two hours. Change retention to one hour and ensure old persisted data is purged even when the broadcaster stops sending updates.
+- [x] **Purge expired published updates.** Now-playing expires publicly after 90 seconds without updates. History is filtered to one hour and a scheduled worker purge removes expired rows from D1 even when the broadcaster stops sending updates.
 
 ### Not ready to work on
 

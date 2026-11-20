@@ -121,7 +121,7 @@ int main() {
         check(h.played.size() == 1 && h.played.front().id == "b", "history.keeps_events_overlapping_last_two_hours");
         check(h.live && h.live->kind == "remote", "history.remote_session_is_current_without_invented_song_metadata");
         h.stop(now); check(h.played.size() == 2 && !h.live, "history.stopped_is_not_now_playing");
-        h.prune(now+7200000); check(h.played.empty(), "history.expires_without_new_playback");
+        h.prune(now+3600000); check(h.played.empty(), "history.expires_without_new_playback");
     }
     std::cout << "SUMMARY " << checks-failures << " passed " << failures << " failed\n";
     return failures ? 1 : 0;

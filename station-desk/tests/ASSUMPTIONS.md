@@ -12,7 +12,7 @@ These assertions describe the present implementation. They are not independent p
 | Randomness | Use shuffled cycles per folder, with repeats after exhaustion to maintain continuous playback. Avoid an immediate cycle-boundary repeat when alternatives exist. |
 | Clock markers | Quarter-hour boundaries belong to the track playing then. Show only its first boundary, and none when there is no boundary within that track. |
 | Remote | Hold local playback and the chosen queue during remote selection; returning to local shifts estimates. |
-| Public feed | Publish current playback and two hours of actual history, including labeled remote sessions. Public readers cannot change playback. |
+| Public feed | Publish current playback and one hour of actual history, including labeled remote sessions. Public readers cannot change playback. |
 
 ## Retained or implementation-level assumptions for operator review
 
@@ -38,7 +38,7 @@ These assertions describe the present implementation. They are not independent p
 | Routing | Default broadcast is channels 1/2, headphone cue 3/4, microphone input 1. Select among active channels. Overlapping headphone/program pairs disable cue to preserve program audio. Unavailable output channels remain silent. |
 | Cue | Headphones can audition program or the remote source at an independent level. Remote audition excludes local program and mic. |
 | Preferences | Persist queue/order, shuffle state, folders/rules, counters, levels/routes, and paused current track/position. Discard missing files and tolerate malformed preferences. Group passwords are not saved. |
-| History | A started and then skipped song counts as actually played. Pausing or switching sources closes a playback segment; resuming creates another segment. Retain segments overlapping the last two hours. |
+| History | A started and then skipped song counts as actually played. Pausing or switching sources closes a playback segment; resuming creates another segment. Retain segments overlapping the last hour. |
 | Publishing | Send metadata on transitions and a 15-second heartbeat, retrying off the audio thread. Public now-playing expires after 90 seconds without updates. Never publish local paths, credentials, or upcoming choices. |
 | Publisher credentials | Outbound HTTPS uses a private publisher key; macOS Keychain stores it. The website receives only the public endpoint URL. |
 

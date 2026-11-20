@@ -494,12 +494,33 @@ private:
             [safe=Component::SafePointer<StationPanel>(this),i](const FileChooser& fc) {if(!safe||!fc.getResult().isDirectory())return;safe->folders[i]=fc.getResult();safe->scan(i);safe->rotationChanged();});
     }
     void scan(int i) {
-        Array<File> files;if(folders[i].isDirectory())folders[i].findChildFiles(files,File::findFiles,true,wildcard());
+        if(i==2) archiveDatedJournalismFiles();
+        Array<File> files;if(folders[i].isDirectory())folders[i].findChildFiles(files,File::findFiles,i==2?false:true,wildcard());
         std::vector<station::Track> tracks;
         for(const auto& f:files)if(auto t=readTrack(f,i))tracks.push_back(*t);
         int unreadable=files.size()-int(tracks.size());playlist.setLibrary(i,std::move(tracks));
         folderLabels[i].setText(String(playlist.libraries[i].size())+" files · "+folders[i].getFileName()+(unreadable?String::fromUTF8(" · ")+String(unreadable)+" unreadable":""),dontSendNotification);
         folderLabels[i].setTooltip(folders[i].getFullPathName());
+    }
+    void archiveDatedJournalismFiles() {
+        if(!folders[2].isDirectory())return;
+        auto validDate=[](const String& name) {
+            if(name.length()<10||name[4]!='.'||name[7]!='.')return false;
+            for(int n:{0,1,2,3,5,6,8,9})if(name[n]<'0'||name[n]>'9')return false;
+            int year=name.substring(0,4).getIntValue(),month=name.substring(5,7).getIntValue(),day=name.substring(8,10).getIntValue();
+            static const int days[]={31,28,31,30,31,30,31,31,30,31,30,31};
+            if(year<1||month<1||month>12)return false;
+            int limit=days[month-1]+(month==2&&((year%4==0&&year%100!=0)||year%400==0));
+            return day>=1&&day<=limit;
+        };
+        Array<File> files;folders[2].findChildFiles(files,File::findFiles,false,wildcard());
+        auto archive=folders[2].getSiblingFile("Archive");
+        for(const auto& source:files) {
+            auto name=source.getFileName();if(!validDate(name))continue;
+            auto year=name.substring(0,4);auto destination=archive.getChildFile(year).getChildFile(name);
+            if(destination.existsAsFile())continue;
+            if(destination.getParentDirectory().createDirectory()&&source.moveFileTo(destination))continue;
+        }
     }
     void syncRules() {for(int i=0;i<3;++i)playlist.rules[i]={rules[i].mode.getSelectedId(),jmax(1,int(rules[i].amount.getValue()))};}
     void refill() {
@@ -701,7 +722,7 @@ private:
 class StationApplication : public JUCEApplication {
 public:
     const String getApplicationName() override {return "Station Desk";}
-    const String getApplicationVersion() override {return "0.2.0";}
+    const String getApplicationVersion() override {return "0.2.1";}
     bool moreThanOneInstanceAllowed() override {
 #if STATION_DESK_TESTS
         // Isolated test processes must not forward their command line to a running operator app.
@@ -799,7 +820,7 @@ public:
     void systemRequestedQuit() override {quit();}
     class Window : public DocumentWindow {
     public:
-        Window():DocumentWindow("Station Desk 0.2.0",Colour(0xff101820),DocumentWindow::allButtons) {
+        Window():DocumentWindow("Station Desk 0.2.1",Colour(0xff101820),DocumentWindow::allButtons) {
             setUsingNativeTitleBar(true);setContentOwned(new StationPanel,true);setResizable(false,false);centreWithSize(getWidth(),getHeight());setVisible(true);
         }
         void closeButtonPressed() override {JUCEApplication::getInstance()->systemRequestedQuit();}

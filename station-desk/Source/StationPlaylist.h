@@ -164,7 +164,7 @@ public:
         stop(now); event.started = now; event.ended = 0; live = std::move(event);
     }
     void prune(int64_t now) {
-        const auto cutoff = now - 2 * 60 * 60 * 1000;
+        const auto cutoff = now - 60 * 60 * 1000;
         played.erase(std::remove_if(played.begin(), played.end(), [&](const PlayEvent& e) {
             return e.ended <= cutoff;
         }), played.end());
