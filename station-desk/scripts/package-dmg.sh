@@ -13,7 +13,7 @@ ditto "$app" "$stage/Station Desk.app"
 ln -s /Applications "$stage/Applications"
 cp "$overlay/LICENSE" "$stage/LICENSE.txt"
 cat > "$stage/Install.txt" <<'INSTALL'
-Station Desk 0.2.1 — Radio Saint Johns
+Station Desk 0.2.2 — Radio Saint Johns
 
 Drag Station Desk.app to Applications, then open it.
 Choose Music folder in FOLDER ROTATION; the next hour fills automatically.
@@ -26,7 +26,7 @@ macOS may require Privacy & Security > Open Anyway after the first launch.
 Source, release notes, and configuration:
 https://github.com/ghan/krsj
 INSTALL
-dmg="$output/Station-Desk-0.2.1-universal.dmg"
+dmg="$output/Station-Desk-0.2.2-universal.dmg"
 hdiutil create -volname "Station Desk" -srcfolder "$stage" -ov -format UDZO "$dmg"
 hdiutil verify "$dmg"
 (cd "$output" && shasum -a 256 "$(basename "$dmg")" > "$(basename "$dmg").sha256")

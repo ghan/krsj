@@ -495,7 +495,7 @@ private:
     }
     void scan(int i) {
         if(i==2) archiveDatedJournalismFiles();
-        Array<File> files;if(folders[i].isDirectory())folders[i].findChildFiles(files,File::findFiles,i==2?false:true,wildcard());
+        Array<File> files;if(folders[i].isDirectory())folders[i].findChildFiles(files,File::findFiles,true,wildcard());
         std::vector<station::Track> tracks;
         for(const auto& f:files)if(auto t=readTrack(f,i))tracks.push_back(*t);
         int unreadable=files.size()-int(tracks.size());playlist.setLibrary(i,std::move(tracks));
@@ -513,7 +513,7 @@ private:
             int limit=days[month-1]+(month==2&&((year%4==0&&year%100!=0)||year%400==0));
             return day>=1&&day<=limit;
         };
-        Array<File> files;folders[2].findChildFiles(files,File::findFiles,false,wildcard());
+        Array<File> files;folders[2].findChildFiles(files,File::findFiles,true,wildcard());
         auto archive=folders[2].getSiblingFile("Archive");
         for(const auto& source:files) {
             auto name=source.getFileName();if(!validDate(name))continue;
@@ -722,7 +722,7 @@ private:
 class StationApplication : public JUCEApplication {
 public:
     const String getApplicationName() override {return "Station Desk";}
-    const String getApplicationVersion() override {return "0.2.1";}
+    const String getApplicationVersion() override {return "0.2.2";}
     bool moreThanOneInstanceAllowed() override {
 #if STATION_DESK_TESTS
         // Isolated test processes must not forward their command line to a running operator app.
@@ -820,7 +820,7 @@ public:
     void systemRequestedQuit() override {quit();}
     class Window : public DocumentWindow {
     public:
-        Window():DocumentWindow("Station Desk 0.2.1",Colour(0xff101820),DocumentWindow::allButtons) {
+        Window():DocumentWindow("Station Desk 0.2.2",Colour(0xff101820),DocumentWindow::allButtons) {
             setUsingNativeTitleBar(true);setContentOwned(new StationPanel,true);setResizable(false,false);centreWithSize(getWidth(),getHeight());setVisible(true);
         }
         void closeButtonPressed() override {JUCEApplication::getInstance()->systemRequestedQuit();}

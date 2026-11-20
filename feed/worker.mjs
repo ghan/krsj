@@ -40,8 +40,8 @@ async function purgeExpired(env, now = Date.now()) {
   const history = (stored.history ?? []).filter(e => e.ended_at > now - ONE_HOUR);
   if (history.length !== (stored.history ?? []).length) {
     stored.history = history;
-    await env.DB.prepare("UPDATE playback_snapshot SET snapshot = ? WHERE id = 1")
-      .bind(JSON.stringify(stored)).run();
+    await env.DB.prepare("UPDATE playback_snapshot SET snapshot = ? WHERE id = 1 AND updated_at = ?")
+      .bind(JSON.stringify(stored), row.updated_at).run();
   }
 }
 export default {

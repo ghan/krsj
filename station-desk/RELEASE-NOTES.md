@@ -1,3 +1,11 @@
+## Station Desk 0.2.2
+
+Journalism scans now archive dated files through nested folders without changing how other subfolder audio is included in playback. Feed cleanup avoids overwriting a newer snapshot if publishing happens during a scheduled purge. The playback feed retains one hour of history.
+
+## Station Desk 0.2.1
+
+Journalism files beginning with a valid `YYYY.MM.DD` date are moved to `Archive/YYYY/` when the folder is scanned. The feed retains one hour of history and purges expired D1 history hourly, including when publishing stops.
+
 Station Desk now prepares the next hour of local playback from the folder rotation settings. Music and inserts are already chosen in the visible list, using shuffled cycles. Next and natural track endings follow that list.
 
 Drag upcoming tracks or use the arrow buttons to reorder them. Operator edits take precedence over generated rotation. Quarter-hour markers show the first time boundary falling within each track. Remote sessions hold the local queue; returning to local shifts its estimates.

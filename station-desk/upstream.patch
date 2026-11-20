@@ -43,7 +43,7 @@ index a8e35c0..a459361 100644
     endif()
  
      juce_add_plugin("${target_name}"
-+        VERSION "0.2.1"
++        VERSION "0.2.2"
          IS_SYNTH "${is_instrument}"
          NEEDS_MIDI_INPUT TRUE
          NEEDS_MIDI_OUTPUT TRUE

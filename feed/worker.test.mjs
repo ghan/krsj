@@ -7,9 +7,15 @@ const snapshot = () => ({ version: 1, updated_at: now, state: "local", now: { ..
 function database() {
   const db = { row: null };
   db.prepare = sql => ({
-    first: async () => db.row,
-    bind: (updated, body) => ({ run: async () => {
-      if (!db.row || updated > db.row.updated_at) db.row = { updated_at: updated, snapshot: body };
+    first: async () => db.row && { snapshot: db.row.snapshot, updated_at: db.row.updated_at },
+    bind: (...values) => ({ run: async () => {
+      if (sql.includes("INSERT")) {
+        const [updated, body] = values;
+        if (!db.row || updated > db.row.updated_at) db.row = { updated_at: updated, snapshot: body };
+      } else {
+        const [body, expectedUpdated] = values;
+        if (db.row?.updated_at === expectedUpdated) db.row.snapshot = body;
+      }
     } })
   });
   return db;
@@ -61,4 +67,15 @@ test("stopped and empty station responses are valid and do not invent playback",
   assert.equal((await response.json()).now, null);
   const s = snapshot(); s.state = "stopped"; s.now = null;
   assert.equal(validateSnapshot(s, now).now, null);
+});
+test("scheduled cleanup purges expired history from persistent storage", async () => {
+  const env = { DB: database() };
+  env.DB.row = { updated_at: now, snapshot: JSON.stringify({ ...snapshot(), now: null, state: "stopped",
+    history: [
+      { ...song, id: "expired", started_at: now - 7200000, ended_at: now - 3600001 },
+      { ...song, id: "recent", started_at: now - 4000000, ended_at: now - 3599000 }
+    ] }) };
+  await worker.scheduled({}, env, { waitUntil: promise => promise });
+  assert.deepEqual(JSON.parse(env.DB.row.snapshot).history.map(e => e.id), ["recent"]);
+  assert.equal(env.DB.row.updated_at, now);
 });
